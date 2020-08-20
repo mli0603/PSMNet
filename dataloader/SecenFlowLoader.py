@@ -47,8 +47,9 @@ class myImageFloder(data.Dataset):
         right_img = self.loader(right)
         dataL, scaleL = self.dploader(disp_L)
         dataL = np.ascontiguousarray(dataL, dtype=np.float32)
+        occL = np.array(Image.open(left.replace('frame_finalpass', 'occlusion'))).astype(np.bool)
+        dataL[occL] = 0.0
 
-        # TODO: read occ
         if self.training:
             w, h = left_img.size
             th, tw = 256, 512

@@ -138,7 +138,7 @@ def test(imgL, imgR, disp_true):
     if len(disp_true[mask]) == 0:
         loss = 0
     else:
-        loss = F.l1_loss(img[mask],
+        loss = F.l1_loss(img[mask] * 1.119,
                          disp_true[mask])  # torch.mean(torch.abs(img[mask]-disp_true[mask]))  # end-point-error
 
     np.save('left.npy', imgL.data.cpu())
