@@ -33,6 +33,8 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--batch_size', type=int, default=4)
+parser.add_argument('--threshold', type=int, default=3)
+
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -41,7 +43,6 @@ if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
 all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = lt.dataloader(args.datapath)
-
 TrainImgLoader = torch.utils.data.DataLoader(
     DA.myImageFloder(all_left_img, all_right_img, all_left_disp, True),
     batch_size=args.batch_size, shuffle=True, num_workers=8, drop_last=False)
@@ -108,7 +109,7 @@ def test(imgL, imgR, disp_true):
     if args.cuda:
         imgL, imgR, disp_true = imgL.cuda(), imgR.cuda(), disp_true.cuda()
     # ---------
-    mask = torch.logical_and(disp_true < 192, disp_true > 0.0)
+    mask = disp_true > 0.0
     # ----
 
     if imgL.shape[2] % 16 != 0:
@@ -135,18 +136,29 @@ def test(imgL, imgR, disp_true):
     else:
         img = output3
 
+    # NOTE: there is a bug reported in the repo, disparity needs to be scaled by 1.17
+    img = img * 1.17
+
     if len(disp_true[mask]) == 0:
         loss = 0
     else:
-        loss = F.l1_loss(img[mask] * 1.119,
-                         disp_true[mask])  # torch.mean(torch.abs(img[mask]-disp_true[mask]))  # end-point-error
+        loss = F.l1_loss(img[mask], disp_true[mask], reduction='none')
 
-    np.save('left.npy', imgL.data.cpu())
-    np.save('right.npy', imgR.data.cpu())
-    np.save('disp_pred.npy', img.data.cpu())
-    np.save('disp.npy', disp_true.data.cpu())
+    # np.save('left.npy', imgL.data.cpu())
+    # np.save('right.npy', imgR.data.cpu())
+    # np.save('disp_pred.npy', img.data.cpu())
+    # np.save('disp.npy', disp_true.data.cpu())
 
-    return loss.data.cpu()
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # plt.imshow(disp_true[0].data.cpu())
+    # plt.figure()
+    # plt.imshow(img[0].data.cpu())
+    # plt.figure()
+    # plt.imshow(mask[0].data.cpu().numpy().astype(np.int))
+    # plt.show()
+
+    return loss
 
 
 def adjust_learning_rate(optimizer, epoch):
@@ -183,13 +195,21 @@ def main():
     # print('full training time = %.2f HR' %((time.time() - start_full_time)/3600))
 
     # ------------- TEST ------------------------------------------------------------
-    total_test_loss = 0
+    total_test_loss = 0.0
+    avg_wrong = 0.0
+    avg_total = 0.0
     for batch_idx, (imgL, imgR, disp_L) in enumerate(TestImgLoader):
         test_loss = test(imgL, imgR, disp_L)
-        print('Iter %d test loss = %.3f' % (batch_idx, test_loss))
-        total_test_loss += test_loss
+        total_test_loss += torch.mean(test_loss)
+        print('Iter %d test loss = %.3f' % (batch_idx, torch.mean(test_loss)))
+
+        wrong = torch.sum(test_loss > args.threshold).item()
+        total = test_loss.numel()
+        avg_wrong = avg_wrong + wrong
+        avg_total = avg_total + total
 
     print('total test loss = %.3f' % (total_test_loss / len(TestImgLoader)))
+    print('%d pixel error = %.3f' % (args.threshold, avg_wrong / avg_total * 100.0))
     # ----------------------------------------------------------------------------------
     # SAVE test information
     savefilename = args.savemodel + 'testinformation.tar'

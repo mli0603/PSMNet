@@ -9,6 +9,7 @@ from . import preprocess
 from . import listflowfile as lt
 from . import readpfm as rp
 import numpy as np
+from natsort import natsorted
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
@@ -31,9 +32,13 @@ def disparity_loader(path):
 class myImageFloder(data.Dataset):
     def __init__(self, left, right, left_disparity, training, loader=default_loader, dploader=disparity_loader):
 
-        self.left = left
-        self.right = right
-        self.disp_L = left_disparity
+        self.left = natsorted(left)
+        self.right = natsorted(right)
+        self.disp_L = natsorted(left_disparity)
+        directory = '/data/Data/SceneFlow/FlyingThings3D/occlusion/TEST/left'
+        self.occ_data = [os.path.join(directory, occ) for occ in os.listdir(directory)]
+        self.occ_data = natsorted(self.occ_data)
+
         self.loader = loader
         self.dploader = dploader
         self.training = training
@@ -47,7 +52,7 @@ class myImageFloder(data.Dataset):
         right_img = self.loader(right)
         dataL, scaleL = self.dploader(disp_L)
         dataL = np.ascontiguousarray(dataL, dtype=np.float32)
-        occL = np.array(Image.open(left.replace('frame_finalpass', 'occlusion'))).astype(np.bool)
+        occL = np.array(Image.open(self.occ_data[index])).astype(np.bool)
         dataL[occL] = 0.0
 
         if self.training:

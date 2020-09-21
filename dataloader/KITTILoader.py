@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 import random
 from PIL import Image, ImageOps
 import numpy as np
-import preprocess 
+from dataloader import preprocess
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
@@ -24,7 +24,7 @@ def disparity_loader(path):
 
 
 class myImageFloder(data.Dataset):
-    def __init__(self, left, right, left_disparity, training, loader=default_loader, dploader= disparity_loader):
+    def __init__(self, left, right, left_disparity, training, loader=default_loader, dploader=disparity_loader):
  
         self.left = left
         self.right = right
