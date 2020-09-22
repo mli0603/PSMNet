@@ -16,8 +16,6 @@ import skimage.transform
 import numpy as np
 import time
 import math
-from dataloader import KITTIloader2015 as ls
-from dataloader import KITTILoader as DA
 
 from models import *
 
@@ -26,7 +24,7 @@ parser.add_argument('--maxdisp', type=int, default=192,
                     help='maxium disparity')
 parser.add_argument('--model', default='stackhourglass',
                     help='select model')
-parser.add_argument('--datatype', default='2015',
+parser.add_argument('--datatype', default='kitti2015',
                     help='datapath')
 parser.add_argument('--datapath', default='/media/jiaren/ImageNet/data_scene_flow_2015/training/',
                     help='datapath')
@@ -49,10 +47,21 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
-if args.datatype == '2015':
+if args.datatype == 'kitti2015':
     from dataloader import KITTIloader2015 as ls
-elif args.datatype == '2012':
+    from dataloader import KITTILoader as DA
+elif args.datatype == 'kitti2012':
     from dataloader import KITTIloader2012 as ls
+    from dataloader import KITTILoader as DA
+elif args.datatype == 'middleburry':
+    from dataloader import Middleburry as ls
+    from dataloader import Middleburry as DA
+elif args.datatype == 'eth3d':
+    from dataloader import ETH3D as ls
+    from dataloader import Middleburry as DA
+elif args.datatype == 'scared':
+    from dataloader import Scared as ls
+    from dataloader import Scared as DA
 
 all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = ls.dataloader(args.datapath)
 
