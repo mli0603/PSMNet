@@ -98,4 +98,7 @@ def dataloader(filepath):
     #                 if is_image_file(driving_dir + i + '/' + j + '/' + k + '/right/' + im):
     #                     all_right_img.append(driving_dir + i + '/' + j + '/' + k + '/right/' + im)
 
-    return all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp
+    occ_path = os.path.join(filepath, 'occlusion', 'TEST', 'left')
+    occ_data = [os.path.join(occ_path, occ) for occ in os.listdir(occ_path)]
+
+    return all_left_img, all_right_img, all_left_disp, [], test_left_img, test_right_img, test_left_disp, occ_data

@@ -34,6 +34,7 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--batch_size', type=int, default=4)
 parser.add_argument('--threshold', type=int, default=3)
+parser.add_argument('--within_max_disp', action='store_true')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -42,13 +43,14 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
-all_left_img, all_right_img, all_left_disp, test_left_img, test_right_img, test_left_disp = lt.dataloader(args.datapath)
+all_left_img, all_right_img, all_left_disp, all_left_occ, test_left_img, test_right_img, test_left_disp, test_left_occ = lt.dataloader(
+    args.datapath)
 TrainImgLoader = torch.utils.data.DataLoader(
-    DA.myImageFloder(all_left_img, all_right_img, all_left_disp, True),
+    DA.myImageFloder(all_left_img, all_right_img, all_left_disp, all_left_occ, True),
     batch_size=args.batch_size, shuffle=True, num_workers=8, drop_last=False)
 
 TestImgLoader = torch.utils.data.DataLoader(
-    DA.myImageFloder(test_left_img, test_right_img, test_left_disp, False),
+    DA.myImageFloder(test_left_img, test_right_img, test_left_disp, test_left_occ, False),
     batch_size=args.batch_size, shuffle=False, num_workers=4, drop_last=False)
 
 if args.model == 'stackhourglass':
@@ -109,7 +111,10 @@ def test(imgL, imgR, disp_true):
     if args.cuda:
         imgL, imgR, disp_true = imgL.cuda(), imgR.cuda(), disp_true.cuda()
     # ---------
-    mask = disp_true > 0.0
+    if args.within_max_disp:
+        mask = torch.logical_and(disp_true > 0.0, disp_true < args.maxdisp)
+    else:
+        mask = disp_true > 0.0
     # ----
 
     if imgL.shape[2] % 16 != 0:

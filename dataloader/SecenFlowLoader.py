@@ -30,14 +30,13 @@ def disparity_loader(path):
 
 
 class myImageFloder(data.Dataset):
-    def __init__(self, left, right, left_disparity, training, loader=default_loader, dploader=disparity_loader):
+    def __init__(self, left, right, left_disparity, left_occ, training, loader=default_loader,
+                 dploader=disparity_loader):
 
         self.left = natsorted(left)
         self.right = natsorted(right)
         self.disp_L = natsorted(left_disparity)
-        directory = '/data/Data/SceneFlow/FlyingThings3D/occlusion/TEST/left'
-        self.occ_data = [os.path.join(directory, occ) for occ in os.listdir(directory)]
-        self.occ_data = natsorted(self.occ_data)
+        self.occ_data = natsorted(left_occ)
 
         self.loader = loader
         self.dploader = dploader

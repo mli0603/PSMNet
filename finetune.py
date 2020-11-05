@@ -40,6 +40,7 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--batch_size', type=int, default=4)
 parser.add_argument('--threshold', type=int, default=3)
+parser.add_argument('--within_max_disp', action='store_true')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -54,11 +55,8 @@ elif args.datatype == 'kitti2012':
     from dataloader import KITTIloader2012 as ls
     from dataloader import KITTILoader as DA
 elif args.datatype == 'middleburry':
-    from dataloader import Middleburry as ls
-    from dataloader import Middleburry as DA
-elif args.datatype == 'eth3d':
-    from dataloader import ETH3D as ls
-    from dataloader import Middleburry as DA
+    from dataloader import Middlebury as ls
+    from dataloader import Middlebury as DA
 elif args.datatype == 'scared':
     from dataloader import Scared as ls
     from dataloader import Scared as DA
@@ -103,8 +101,10 @@ def train(imgL, imgR, disp_L):
         imgL, imgR, disp_true = imgL.cuda(), imgR.cuda(), disp_L.cuda()
 
     # ---------
-    mask = (disp_true > 0)
-    mask.detach_()
+    if args.within_max_disp:
+        mask = torch.logical_and(disp_true > 0.0, disp_true < args.maxdisp)
+    else:
+        mask = disp_true > 0.0
     # ----
 
     optimizer.zero_grad()
